@@ -1,0 +1,450 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>第二次作业</title>
+		<script src="https://cdn.bootcss.com/echarts/4.2.0-rc.1/echarts.js"></script>
+		<script src="js/d3.v3.min.js"></script>
+		<script src="js/d3.tip.js"></script>
+		<script src="js/topjson.js"></script>
+		<style>
+			.background {
+				fill: none;
+				pointer-events: all;
+			}
+
+			.d3-tip {
+				line-height: 1;
+				font-weight: bold;
+				padding: 12px;
+				background: rgba(0, 0, 0, 0.8);
+				color: #fff;
+				border-radius: 2px;
+			}
+
+			/* Creates a small triangle extender for the tooltip */
+			.d3-tip:after {
+				box-sizing: border-box;
+				display: inline;
+				font-size: 10px;
+				width: 100%;
+				line-height: 1;
+				color: rgba(0, 0, 0, 0.8);
+				content: "\25BC";
+				position: absolute;
+				text-align: center;
+			}
+
+			/* Style northward tooltips differently */
+			.d3-tip.n:after {
+				margin: -1px 0 0 0;
+				top: 100%;
+				left: 0;
+			}
+			#states {
+        fill: #aaa;
+       }
+      #states .active {
+        fill: orange;
+      }
+			.div-inline{ display:inline}
+			.dive-fathse{display: flex;}
+
+		</style>
+	</head>
+	<body>
+		<div class="dive-fathse">
+			<div></div>
+			<script>
+				var width = 1000
+				var height = 800
+				var centered
+				var projection = d3.geo.mercator()
+					.center([107, 31])
+					.scale(700)
+					.translate([width / 2, height / 2])
+
+				var path = d3.geo.path()
+					.projection(projection)
+				var color = d3.scale.category20()
+				var svg = d3.select("body").append("svg")
+					.attr("width", width)
+					.attr("height", height)
+					.append("g")
+					.attr("transform", "translate(0,0)");
+
+				svg.append("rect")
+					.attr("class", "background")
+					.attr("width", width)
+					.attr("height", height)
+					.on("click", clicked);
+
+				d3.json("data/china.json", function(error, root) {
+					if (error)
+						return console.error(error)
+
+					svg.selectAll("path")
+						.data(root.features)
+						.enter()
+						.append("path")
+						.attr("stroke", "#000")
+						.attr("stroke-width", 1)
+						.attr("fill", 'grey')
+						.attr("d", function(d, i) {
+							return path(d)
+						})
+						.on("click", clicked);
+
+					d3.csv("data/国控地表水监测站基础信息.csv", function(error, csvdata) {
+						if (error) {
+							console.log(error)
+						}
+						for (var i = 0; i < csvdata.length; i++) {
+							var lon = csvdata[i].lon
+							var lat = csvdata[i].lat
+							var peking = [lon, lat]
+							var proPeking = projection(peking)
+							var tip = d3.tip()
+								.attr('class', 'd3-tip')
+								.offset([-10, 0])
+								.html("<strong>名称:</strong> <span style='color:red'>" + csvdata[i].name + "</span></br>" +
+									"<strong>所属流域:</strong> <span style='color:red'>" + csvdata[i].basin + "</span></br>" +
+									"<strong>断面属性:</strong> <span style='color:red'>" + csvdata[i].section + "</span></br>" +
+									//								"<strong>简介:</strong> <span style='color:red'>" + csvdata[i].description + "</span></br>" +
+									"<strong>托管方:</strong> <span style='color:red'>" + csvdata[i].setupdate + "</span></br>" +
+									"<strong>设立时间:</strong> <span style='color:red'>" + csvdata[i].status + "</span></br>")
+							svg.call(tip);
+							svg.append("circle")
+								.attr("class", "point")
+								.attr("cx", proPeking[0])
+								.attr("cy", proPeking[1])
+								.attr("r", 3)
+								.attr('fill', 'white')
+								.on("mouseover", tip.show)
+								.on("mouseout", tip.hide)
+								.on('mouseenter', function(d, i) {
+									d3.select(this)
+										.attr('fill', 'red')
+										.transition()
+										.duration(20)
+										.ease('bounce')
+										.attr('r', 7)
+								})
+								.on('mouseleave', function(d, i) {
+									d3.select(this)
+										.attr('fill', 'white')
+										.transition()
+										.duration(20)
+										.ease('bounce')
+										.attr('r', 3)
+								})
+						}
+					})
+				})
+
+				function clicked(d) {
+					var x, y, k;
+					if (d && centered !== d) {
+						var centroid = path.centroid(d);
+						x = centroid[0];
+						y = centroid[1];
+						k = 4;
+						centered = d;
+					} else {
+						x = width / 2;
+						y = height / 2;
+						k = 1;
+						centered = null;
+					}
+
+					svg.selectAll("path")
+						.classed("active", centered && function(d) {
+							return d === centered;
+						});
+
+					svg.transition()
+						.duration(750)
+						.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y +
+							")")
+						.style("stroke-width", 1.5 / k + "px");
+				}
+			</script>
+			<div id="main" style="width: 700px;height:400px;"></div>
+			<script type="text/javascript">
+				d3.csv("data/国控地表水201501站点监测数据.csv", function(error, monitorData) {
+					if (error) {
+						console.log(error);
+					}
+					var len = monitorData.length
+					var j
+					var temp
+					var a1 = 0,
+						a2 = 0,
+						a3 = 0,
+						a4 = 0,
+						a5 = 0,
+						a6 = 0
+					while (len > 1) {
+						for (j = 0; j < len - 1; j++) {
+							if (monitorData[j].sta_id * 1 > monitorData[j + 1].sta_id * 1) {
+								temp = monitorData[j];
+								monitorData[j] = monitorData[j + 1];
+								monitorData[j + 1] = temp;
+							}
+						}
+						len--;
+					}
+					var myChart = echarts.init(document.getElementById('main'));
+					var flag = 0
+					var num = []
+					num.push(monitorData[0].sta_id)
+					for (var i = 1; i < monitorData.length; i++) {
+						for (var k = 0; k < num.length; k++) {
+							if (monitorData[i].sta_id == num[k]) {
+								flag = 1
+								break;
+							}
+						}
+						if (flag == 0) {
+							num.push(monitorData[i].sta_id)
+						} else {
+							flag = 0
+						}
+					}
+					var text = []
+					for (var p = 0; p < num.length; p++) {
+						text.push(num[p] + "号站点")
+					}
+					var maxData = []
+					var minData = []
+
+					var maxPh = 0
+					var minPh = 9999
+					var a1, a2, a3, a4, a5, a6
+					for (var i = 0; i < num.length; i++) {
+						var x = num[i]
+						for (var j = 0; j < monitorData.length; j++) {
+							if (monitorData[j].sta_id == x) {
+								if (monitorData[j].sta_ph_v > maxPh) {
+									maxPh = monitorData[j].sta_ph_v
+								}
+								if (monitorData[j].sta_ph_v < minPh) {
+									minPh = monitorData[j].sta_ph_v
+								}
+							}
+						}
+						maxData.push(maxPh)
+						maxPh = 0
+						minData.push(minPh)
+						minPh = 9999
+					}
+					var min = 999
+					var minLocation
+					for (var k = 0; k < minData.length; k++) {
+						if (minData[k] < min) {
+							min = minData[k]
+							minLocation = k
+						}
+					}
+					option = {
+						title: {
+							text: '一月内PH值变化'
+						},
+						tooltip: {
+							trigger: 'axis'
+						},
+						legend: {
+							data: ['最高PH值', '最低PH值']
+						},
+						toolbox: {
+							show: true,
+							feature: {
+								dataZoom: {
+									yAxisIndex: 'none'
+								},
+								dataView: {
+									readOnly: false
+								},
+								magicType: {
+									type: ['line', 'bar']
+								},
+								restore: {},
+								saveAsImage: {}
+							}
+						},
+						xAxis: {
+							type: 'category',
+							boundaryGap: false,
+							data: text
+						},
+						yAxis: {
+							type: 'value',
+							axisLabel: {
+								formatter: '{value}'
+							}
+						},
+						series: [{
+								name: '最高PH值',
+								type: 'line',
+								data: maxData,
+								markPoint: {
+									data: [{
+											type: 'max',
+											name: '最大值'
+										},
+										{
+											type: 'min',
+											name: '最小值'
+										}
+									]
+								},
+								markLine: {
+									data: [{
+										type: 'average',
+										name: '平均值'
+									}]
+								}
+							},
+							{
+								name: '最低PH值',
+								type: 'line',
+								data: minData,
+								markPoint: {
+									data: [{
+										name: '月最低',
+										value: min,
+										xAxis: minLocation,
+										yAxis: min
+									}]
+								},
+								markLine: {
+									data: [{
+											type: 'average',
+											name: '平均值'
+										},
+										[{
+											symbol: 'none',
+											x: '90%',
+											yAxis: 'max'
+										}, {
+											symbol: 'circle',
+											label: {
+												normal: {
+													position: 'start',
+													formatter: '最大值'
+												}
+											},
+											type: 'max',
+											name: '最高点'
+										}]
+									]
+								}
+							}
+						]
+					};
+					myChart.setOption(option);
+				});
+			</script>
+			<div id="tuer" style="width: 600px;height:400px;"></div>
+			<script type="text/javascript">
+				d3.csv("data/国控地表水201501站点监测数据.csv", function(error, monitorData) {
+							if (error) {
+								console.log(error);
+							}
+							var myChart = echarts.init(document.getElementById('tuer'));
+							var len = monitorData.length
+							var a1 = 0,
+								a2 = 0,
+								a3 = 0,
+								a4 = 0,
+								a5 = 0,
+								a6 = 0
+							while (len > 1) {
+								for (j = 0; j < len - 1; j++) {
+									if (monitorData[j].sta_pp_l == "Ⅰ") {
+										a1 += 1
+									}
+									if (monitorData[j].sta_pp_l == "Ⅱ") {
+										a2 += 1
+									}
+									if (monitorData[j].sta_pp_l == "Ⅲ") {
+										a3 += 1
+									}
+									if (monitorData[j].sta_pp_l == "Ⅳ") {
+										a4 += 1
+									}
+									if (monitorData[j].sta_pp_l == "Ⅴ") {
+										a5 += 1
+									}
+									if (monitorData[j].sta_pp_l == "劣Ⅴ") {
+										a6 += 1
+									}
+								}
+								len--;
+							}
+							console.log(a1,a2,a3,a4,a5,a6)
+							option1 = {
+								tooltip: {
+									trigger: 'item',
+									formatter: "{a} <br/>{b}: {c} ({d}%)"
+								},
+								legend: {
+									orient: 'vertical',
+									x: 'left',
+									data: ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ','劣Ⅴ']
+								},
+								series: [{
+									name: '总碳物质含量等级',
+									type: 'pie',
+									radius: ['50%', '70%'],
+									avoidLabelOverlap: false,
+									label: {
+										normal: {
+											show: false,
+											position: 'center'
+										},
+										emphasis: {
+											show: true,
+											textStyle: {
+												fontSize: '30',
+												fontWeight: 'bold'
+											}
+										}
+									},
+									labelLine: {
+										normal: {
+											show: false
+										}
+									},
+									data: [{
+											value: a1,
+											name: 'Ⅰ'
+										},
+										{
+											value: a2,
+											name: 'Ⅱ'
+										},
+										{
+											value: a3,
+											name: 'Ⅲ'
+										},
+										{
+											value: a4,
+											name: 'Ⅳ'
+										},
+										{
+											value: a5,
+											name: 'Ⅴ'
+										},
+										{
+											value: a6,
+											name: '劣Ⅴ'
+										}
+									]
+								}]
+							};
+							myChart.setOption(option1)
+						});
+			</script>
+		</div>
+	</body>
+</html>
